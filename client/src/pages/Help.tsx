@@ -9,14 +9,15 @@ export default function Help() {
       
       <Card className="mb-4">
         <CardHeader className="pb-2">
-          <CardTitle className="text-lg">About Ghosted</CardTitle>
+          <CardTitle className="text-lg">About enterN | Ghost Tamer</CardTitle>
         </CardHeader>
         <CardContent>
           <p className="text-sm">
-            Ghosted is a community-driven browser extension that allows job seekers to report 
-            when employers "ghost" them during the application process. By collecting and sharing 
-            these experiences, we aim to bring transparency to the job market and help applicants 
-            make informed decisions.
+            enterN is transforming the way we hire with the enterN platform. This is a 
+            community-driven browser extension that allows jobseekers to report when employers 
+            "ghost" them during the hiring process. By collecting and sharing these experiences, 
+            we aim to bring transparency to the job market and help jobseekers make informed 
+            decisions about applying.
           </p>
         </CardContent>
       </Card>
@@ -64,7 +65,7 @@ export default function Help() {
                 Which job boards are supported?
               </AccordionTrigger>
               <AccordionContent className="text-sm">
-                Ghosted currently works with LinkedIn, Indeed, ZipRecruiter, and Monster. 
+                enterN | Ghost Tamer currently works with LinkedIn, Indeed, ZipRecruiter, and Monster. 
                 We're always working to expand to more platforms. Let us know if you'd like 
                 to see another site supported!
               </AccordionContent>
@@ -76,7 +77,7 @@ export default function Help() {
               </AccordionTrigger>
               <AccordionContent className="text-sm">
                 If you encounter any issues with the extension, please email us at 
-                support@ghosted-extension.com or use the "Report Issue" button at the bottom 
+                support@entern.com or use the "Report Issue" button at the bottom 
                 of this page.
               </AccordionContent>
             </AccordionItem>

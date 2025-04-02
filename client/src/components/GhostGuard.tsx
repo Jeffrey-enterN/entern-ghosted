@@ -3,6 +3,7 @@ import { useGhostGuard } from "@/context/GhostGuardContext";
 import Home from "@/pages/Home";
 import Reports from "@/pages/Reports";
 import NewReport from "@/pages/NewReport";
+import logo from "@assets/logo.png";
 
 const GhostGuard = () => {
   const { activeTab, setActiveTab, currentSite } = useGhostGuard();
@@ -27,10 +28,8 @@ const GhostGuard = () => {
       <header className="bg-white border-b border-slate-200 sticky top-0 z-10">
         <div className="flex items-center justify-between px-4 py-3">
           <div className="flex items-center">
-            <div className="mr-2 text-primary-dark text-2xl">
-              <i className="ri-ghost-line"></i>
-            </div>
-            <h1 className="font-display font-bold text-lg text-slate-800">GhostGuard</h1>
+            <img src={logo} alt="enterN Ghost Tamer Logo" className="h-8 mr-2" />
+            <h1 className="font-display font-bold text-lg text-slate-800">enterN | Ghost Tamer</h1>
           </div>
           <div>
             <button

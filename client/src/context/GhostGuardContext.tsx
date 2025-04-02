@@ -108,3 +108,5 @@ export const useGhostGuard = (): GhostGuardContextType => {
   }
   return context;
 };
+
+// This context and provider were initially named GhostGuard before being rebranded to enterN | Ghost Tamer
