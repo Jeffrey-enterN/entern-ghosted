@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
-import { getExtensionInfo } from "@/lib/extensionApi";
+import { getExtensionInfo } from "../lib/extensionApi";
 
 type Settings = {
   autoDetectJobs: boolean;

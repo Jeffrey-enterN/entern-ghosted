@@ -69,7 +69,7 @@ export const companyStatsSchema = z.object({
       id: z.number(),
       applicationStage: z.string(),
       reportDate: z.string(),
-      details: z.string().optional(),
+      details: z.string().nullable(),
     })
   ),
 });

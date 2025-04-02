@@ -1,88 +1,98 @@
-import { v4 as uuidv4 } from 'uuid';
-import { JobDetails, jobDetailsSchema } from '@shared/schema';
+// Extension API functions
 
-// Extension information
-interface ExtensionInfo {
-  reporterId: string;
-  version: string;
+// Base API URL - this would be updated for production
+const API_BASE_URL = 'http://localhost:5000';
+
+// Helper function to make API requests
+async function apiRequest(
+  method: string,
+  endpoint: string,
+  data?: any
+): Promise<any> {
+  try {
+    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+      method,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: data ? JSON.stringify(data) : undefined,
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`API request failed: ${response.status} ${errorText}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error(`API ${method} request to ${endpoint} failed:`, error);
+    throw error;
+  }
 }
 
-// Local storage keys
-const REPORTER_ID_KEY = 'ghosted_reporter_id';
-const SETTINGS_KEY = 'ghosted_settings';
-
-/**
- * Get extension information including reporter ID
- */
-export async function getExtensionInfo(): Promise<ExtensionInfo> {
-  // Check for existing reporter ID in local storage
-  let reporterId = localStorage.getItem(REPORTER_ID_KEY);
-  
-  // If no ID exists, create one and store it
+// Get extension info including reporter ID - stored in local storage
+export async function getExtensionInfo(): Promise<{reporterId: string}> {
+  // Generate a unique reporter ID if none exists yet
+  let reporterId = localStorage.getItem('ghosted_reporter_id');
   if (!reporterId) {
-    reporterId = uuidv4();
-    localStorage.setItem(REPORTER_ID_KEY, reporterId);
+    reporterId = `reporter_${Math.random().toString(36).substring(2, 12)}`;
+    localStorage.setItem('ghosted_reporter_id', reporterId);
   }
   
-  return {
-    reporterId,
-    version: '1.0.0',
-  };
+  return { reporterId };
 }
 
-/**
- * Get job details from the current page
- * In a real extension, this would communicate with the content script
- */
-export async function getJobDetails(): Promise<JobDetails | null> {
-  // In a real extension, we would get this data from the content script
-  // For development, we'll return mock data if we're in the extension context
-  
-  // Check if we're in a browser extension context
-  const isExtension = !!(window.chrome && chrome.runtime && chrome.runtime.id);
-  
-  if (isExtension) {
-    // In a real extension, we would send a message to the content script
-    return new Promise((resolve) => {
-      chrome.tabs.query({active: true, currentWindow: true}, (tabs) => {
-        chrome.tabs.sendMessage(tabs[0].id!, {action: "getJobDetails"}, (response) => {
-          if (response && response.jobDetails) {
-            resolve(response.jobDetails);
-          } else {
-            resolve(null);
-          }
-        });
-      });
-    });
-  } else {
-    // For development, we'll check URL for job board parameters
-    const urlParams = new URLSearchParams(window.location.search);
-    const testJobBoard = urlParams.get('jobBoard');
-    
-    if (testJobBoard) {
-      try {
-        return jobDetailsSchema.parse({
-          title: "Senior Software Engineer",
-          company: "Acme Corporation",
-          location: "New York, NY",
-          jobBoard: testJobBoard as any || "linkedin",
-          url: window.location.href,
-        });
-      } catch (error) {
-        console.error("Invalid job details:", error);
-        return null;
-      }
+// Get job details from the current page (or mock for development)
+export async function getJobDetails(): Promise<any> {
+  // In the browser extension, this would communicate with the content script
+  // For development, we'll just return mock data or try to detect from URL
+  try {
+    // Check if we have a stored job from content script
+    const storedJob = localStorage.getItem('current_job_details');
+    if (storedJob) {
+      return JSON.parse(storedJob);
     }
     
+    // For development fallback
+    return {
+      title: 'Software Engineer',
+      company: 'TechCorp',
+      location: 'San Francisco, CA',
+      jobBoard: 'linkedin',
+      url: window.location.href
+    };
+  } catch (error) {
+    console.error('Error getting job details:', error);
     return null;
   }
 }
 
-/**
- * Open extension options page
- */
-export function openOptionsPage(): void {
-  if (window.chrome && chrome.runtime && chrome.runtime.id) {
-    chrome.runtime.openOptionsPage();
-  }
+// Get company stats by name
+export async function getCompanyStats(companyName: string): Promise<any> {
+  return apiRequest('GET', `/api/companies/stats?name=${encodeURIComponent(companyName)}`);
+}
+
+// Get stats for a job URL
+export async function getJobUrlStats(jobUrl: string): Promise<any> {
+  return apiRequest('GET', `/api/url/stats?url=${encodeURIComponent(jobUrl)}`);
+}
+
+// Submit a ghosting report
+export async function submitGhostingReport(reportData: any): Promise<any> {
+  return apiRequest('POST', '/api/reports', reportData);
+}
+
+// Get all reports for a reporter
+export async function getReporterReports(reporterId: string): Promise<any> {
+  return apiRequest('GET', `/api/reporters/${reporterId}/reports`);
+}
+
+// Get company reports
+export async function getCompanyReports(companyId: number): Promise<any> {
+  return apiRequest('GET', `/api/companies/${companyId}/reports`);
+}
+
+// Create a company
+export async function createCompany(companyData: any): Promise<any> {
+  return apiRequest('POST', '/api/companies', companyData);
 }

@@ -1,6 +1,8 @@
-import { JobDetails, JobBoard } from '@shared/schema';
+// Job detection utility for the extension
 
-// Job board detection configuration
+import { JobDetails } from '@shared/schema';
+
+// Job board configuration
 const jobBoardConfigs = {
   linkedin: {
     hostMatch: /(www\.linkedin\.com)/i,
@@ -25,7 +27,7 @@ const jobBoardConfigs = {
     pathMatch: /\/jobs\//i,
     selectors: {
       title: '.job_title',
-      company: '.hiring_company_name',
+      company: '.hiring_company_text',
       location: '.hiring_location',
     }
   },
@@ -44,42 +46,50 @@ const jobBoardConfigs = {
  * Detect if current page is a job listing and extract details
  */
 export function detectJobListing(): JobDetails | null {
+  if (typeof window === 'undefined') {
+    return null; // Not in browser environment
+  }
+
   const url = window.location.href;
   const hostname = window.location.hostname;
   const pathname = window.location.pathname;
   
   // Determine which job board we're on
-  let jobBoard: JobBoard | null = null;
+  let matchedBoard = null;
   let selectors = null;
   
   for (const [board, config] of Object.entries(jobBoardConfigs)) {
     if (config.hostMatch.test(hostname) && config.pathMatch.test(pathname)) {
-      jobBoard = board as JobBoard;
+      matchedBoard = board;
       selectors = config.selectors;
       break;
     }
   }
   
-  if (!jobBoard || !selectors) {
-    return null;
+  if (!matchedBoard || !selectors) {
+    return null; // Not on a supported job board
   }
   
   // Extract job details using selectors
   try {
-    const title = document.querySelector(selectors.title)?.textContent?.trim() || '';
-    const company = document.querySelector(selectors.company)?.textContent?.trim() || '';
-    const location = document.querySelector(selectors.location)?.textContent?.trim() || '';
+    const titleElement = document.querySelector(selectors.title);
+    const companyElement = document.querySelector(selectors.company);
+    const locationElement = document.querySelector(selectors.location);
     
-    if (!title || !company) {
-      return null;
+    if (!titleElement || !companyElement) {
+      return null; // Required elements not found
     }
+    
+    const title = titleElement.textContent?.trim() || 'Unknown Position';
+    const company = companyElement.textContent?.trim() || 'Unknown Company';
+    const location = locationElement?.textContent?.trim() || '';
     
     return {
       title,
       company,
       location,
-      jobBoard,
-      url,
+      jobBoard: matchedBoard as any,
+      url
     };
   } catch (error) {
     console.error('Error detecting job listing:', error);
@@ -91,73 +101,245 @@ export function detectJobListing(): JobDetails | null {
  * Inject overlay with ghosting data into job listing
  */
 export function injectGhostingOverlay(ghostingRate: number, totalReports: number, stageBreakdown: Record<string, number>): void {
-  // Determine rating class based on ghosting rate
-  let ratingClass = 'ghost-rating-0';
-  if (ghostingRate >= 50) {
-    ratingClass = 'ghost-rating-2';
-  } else if (ghostingRate >= 20) {
-    ratingClass = 'ghost-rating-1';
+  if (typeof document === 'undefined') {
+    return; // Not in browser environment
+  }
+
+  // Remove existing overlay if present
+  const existingOverlay = document.querySelector('.ghost-tamer-overlay');
+  if (existingOverlay) {
+    existingOverlay.remove();
   }
   
-  // Create overlay element
-  const overlay = document.createElement('div');
-  overlay.className = 'fixed bottom-4 right-4 w-64';
-  overlay.innerHTML = `
-    <div class="bg-white rounded-lg shadow-lg overflow-hidden border border-gray-200">
-      <div class="p-4">
-        <div class="flex items-center justify-between">
-          <h3 class="text-sm font-semibold text-gray-900">Ghosted Rating</h3>
-          <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${ratingClass}">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
-              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-            </svg>
-            ${ghostingRate}% ghosting
+  // Determine rating class based on ghosting rate
+  let ratingClass = 'ghost-tamer-badge-green';
+  let ratingText = 'Low Risk';
+  
+  if (ghostingRate >= 50) {
+    ratingClass = 'ghost-tamer-badge-red';
+    ratingText = 'High Risk';
+  } else if (ghostingRate >= 20) {
+    ratingClass = 'ghost-tamer-badge-yellow';
+    ratingText = 'Medium Risk';
+  }
+  
+  // Get top two most common ghosting stages
+  const topStages = Object.entries(stageBreakdown)
+    .filter(([, value]) => value > 0)
+    .sort(([, a], [, b]) => b - a)
+    .slice(0, 2);
+  
+  // Generate stage breakdown HTML
+  let stageBreakdownHtml = '';
+  if (topStages.length > 0) {
+    topStages.forEach(([stage, percentage], index) => {
+      const color = percentage >= 50 ? 'text-red-700' : (percentage >= 20 ? 'text-amber-700' : 'text-green-700');
+      stageBreakdownHtml += `
+        <div class="ghost-tamer-flex ghost-tamer-flex-between ${index > 0 ? 'ghost-tamer-mt-1' : ''}">
+          <span>${stage}:</span>
+          <span style="font-weight: 500; ${color === 'text-red-700' ? 'color: #B91C1C' : (color === 'text-amber-700' ? 'color: #92400E' : 'color: #166534')}">${percentage}%</span>
+        </div>
+      `;
+    });
+  } else {
+    stageBreakdownHtml = '<div class="ghost-tamer-text-sm ghost-tamer-text-gray">No stage data available yet</div>';
+  }
+  
+  // Create overlay HTML
+  const overlayHTML = `
+    <div class="ghost-tamer-card">
+      <div class="ghost-tamer-header">
+        <span class="ghost-tamer-title">enterN | Ghost Tamer</span>
+        <span class="ghost-tamer-close" id="ghost-tamer-close">&times;</span>
+      </div>
+      <div class="ghost-tamer-content">
+        <div class="ghost-tamer-flex ghost-tamer-flex-between">
+          <h3 class="ghost-tamer-heading">Ghosting Rating</h3>
+          <span class="ghost-tamer-badge ${ratingClass}">
+            ${ghostingRate}% - ${ratingText}
           </span>
         </div>
-        <p class="mt-1 text-xs text-gray-500">Based on ${totalReports} reports from job seekers</p>
+        <p class="ghost-tamer-text-sm ghost-tamer-text-gray ghost-tamer-mt-1">Based on ${totalReports} reports from job seekers</p>
         
-        <div class="mt-3 text-xs">
-          ${Object.entries(stageBreakdown)
-            .filter(([_, value]) => value > 0)
-            .sort(([_, a], [_, b]) => b - a)
-            .slice(0, 2)
-            .map(([stage, percentage]) => {
-              const color = percentage >= 50 ? 'text-red-700' : (percentage >= 20 ? 'text-amber-700' : 'text-green-700');
-              return `
-                <div class="flex justify-between items-center ${stage !== Object.entries(stageBreakdown)[0][0] ? 'mt-1' : ''}">
-                  <span>${stage}:</span>
-                  <span class="font-medium ${color}">${percentage}%</span>
-                </div>
-              `;
-            }).join('')}
+        <div class="ghost-tamer-text-sm ghost-tamer-mt-3">
+          <strong>Most common ghosting stages:</strong>
+          ${stageBreakdownHtml}
         </div>
         
-        <div class="mt-3">
-          <button class="w-full inline-flex justify-center items-center px-3 py-2 border border-transparent text-xs font-medium rounded-md text-white bg-primary hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500" data-ghosted-action="openPopup">
+        <div class="ghost-tamer-mt-3">
+          <button class="ghost-tamer-button" id="ghost-tamer-details">
             View Details
+          </button>
+        </div>
+        
+        <div class="ghost-tamer-mt-2">
+          <button class="ghost-tamer-button" id="ghost-tamer-report" style="background-color: #ef4444;">
+            Report Ghosting
           </button>
         </div>
       </div>
     </div>
   `;
   
-  // Add styles
-  const style = document.createElement('style');
-  style.textContent = `
-    .ghost-rating-0 { background-color: #BBF7D0; color: #166534; }
-    .ghost-rating-1 { background-color: #FEF3C7; color: #92400E; }
-    .ghost-rating-2 { background-color: #FEE2E2; color: #B91C1C; }
-  `;
+  // Create overlay element
+  const overlay = document.createElement('div');
+  overlay.className = 'ghost-tamer-overlay';
+  overlay.innerHTML = overlayHTML;
+  
+  // Add CSS styles if needed
+  ensureStyles();
   
   // Append to document
-  document.head.appendChild(style);
   document.body.appendChild(overlay);
   
-  // Add event listener for the View Details button
-  const viewButton = overlay.querySelector('[data-ghosted-action="openPopup"]');
-  if (viewButton) {
-    viewButton.addEventListener('click', () => {
-      chrome.runtime.sendMessage({ action: 'openPopup' });
-    });
+  // Add event listeners
+  document.getElementById('ghost-tamer-details')?.addEventListener('click', () => {
+    window.dispatchEvent(new CustomEvent('ghostTamer:openDetails'));
+  });
+  
+  document.getElementById('ghost-tamer-report')?.addEventListener('click', () => {
+    window.dispatchEvent(new CustomEvent('ghostTamer:openReport'));
+  });
+  
+  document.getElementById('ghost-tamer-close')?.addEventListener('click', () => {
+    document.querySelector('.ghost-tamer-overlay')?.remove();
+  });
+}
+
+// Helper to ensure CSS styles are injected
+function ensureStyles() {
+  if (document.getElementById('ghost-tamer-styles')) {
+    return; // Styles already added
   }
+  
+  const styleEl = document.createElement('style');
+  styleEl.id = 'ghost-tamer-styles';
+  styleEl.textContent = `
+    .ghost-tamer-overlay {
+      position: fixed;
+      bottom: 1rem;
+      right: 1rem;
+      width: 16rem;
+      z-index: 9999;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+    }
+    
+    .ghost-tamer-card {
+      background-color: white;
+      border-radius: 0.5rem;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+      border: 1px solid #e5e7eb;
+      overflow: hidden;
+    }
+    
+    .ghost-tamer-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.75rem 1rem;
+      background-color: #4f46e5;
+      color: white;
+    }
+    
+    .ghost-tamer-title {
+      font-weight: 600;
+      font-size: 0.875rem;
+    }
+    
+    .ghost-tamer-content {
+      padding: 1rem;
+    }
+    
+    .ghost-tamer-flex {
+      display: flex;
+    }
+    
+    .ghost-tamer-flex-between {
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .ghost-tamer-heading {
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: #111827;
+      margin: 0;
+    }
+    
+    .ghost-tamer-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.125rem 0.625rem;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 500;
+    }
+    
+    .ghost-tamer-badge-green {
+      background-color: #BBF7D0;
+      color: #166534;
+    }
+    
+    .ghost-tamer-badge-yellow {
+      background-color: #FEF3C7;
+      color: #92400E;
+    }
+    
+    .ghost-tamer-badge-red {
+      background-color: #FEE2E2;
+      color: #B91C1C;
+    }
+    
+    .ghost-tamer-text-sm {
+      font-size: 0.75rem;
+    }
+    
+    .ghost-tamer-text-gray {
+      color: #6B7280;
+    }
+    
+    .ghost-tamer-mt-1 {
+      margin-top: 0.25rem;
+    }
+    
+    .ghost-tamer-mt-2 {
+      margin-top: 0.5rem;
+    }
+    
+    .ghost-tamer-mt-3 {
+      margin-top: 0.75rem;
+    }
+    
+    .ghost-tamer-button {
+      width: 100%;
+      display: inline-flex;
+      justify-content: center;
+      align-items: center;
+      padding: 0.5rem 0.75rem;
+      border: 1px solid transparent;
+      font-size: 0.75rem;
+      font-weight: 500;
+      border-radius: 0.375rem;
+      color: white;
+      background-color: #4f46e5;
+      cursor: pointer;
+    }
+    
+    .ghost-tamer-button:hover {
+      background-color: #4338ca;
+    }
+
+    .ghost-tamer-close {
+      cursor: pointer;
+      color: white;
+      opacity: 0.7;
+      transition: opacity 0.2s;
+    }
+
+    .ghost-tamer-close:hover {
+      opacity: 1;
+    }
+  `;
+  
+  document.head.appendChild(styleEl);
 }

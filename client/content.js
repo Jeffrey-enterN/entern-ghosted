@@ -1,102 +1,4 @@
-// Add CSS styles for the overlay
-const styleEl = document.createElement('style');
-styleEl.textContent = `
-  .ghosted-overlay {
-    position: fixed;
-    bottom: 1rem;
-    right: 1rem;
-    width: 16rem;
-    z-index: 9999;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
-  }
-  
-  .ghosted-card {
-    background-color: white;
-    border-radius: 0.5rem;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-    border: 1px solid #e5e7eb;
-    overflow: hidden;
-  }
-  
-  .ghosted-card-content {
-    padding: 1rem;
-  }
-  
-  .ghosted-flex {
-    display: flex;
-  }
-  
-  .ghosted-flex-between {
-    justify-content: space-between;
-    align-items: center;
-  }
-  
-  .ghosted-heading {
-    font-size: 0.875rem;
-    font-weight: 600;
-    color: #111827;
-  }
-  
-  .ghosted-badge {
-    display: inline-flex;
-    align-items: center;
-    padding: 0.125rem 0.625rem;
-    border-radius: 9999px;
-    font-size: 0.75rem;
-    font-weight: 500;
-  }
-  
-  .ghosted-badge-green {
-    background-color: #BBF7D0;
-    color: #166534;
-  }
-  
-  .ghosted-badge-yellow {
-    background-color: #FEF3C7;
-    color: #92400E;
-  }
-  
-  .ghosted-badge-red {
-    background-color: #FEE2E2;
-    color: #B91C1C;
-  }
-  
-  .ghosted-text-sm {
-    font-size: 0.75rem;
-  }
-  
-  .ghosted-text-gray {
-    color: #6B7280;
-  }
-  
-  .ghosted-mt-1 {
-    margin-top: 0.25rem;
-  }
-  
-  .ghosted-mt-3 {
-    margin-top: 0.75rem;
-  }
-  
-  .ghosted-button {
-    width: 100%;
-    display: inline-flex;
-    justify-content: center;
-    align-items: center;
-    padding: 0.5rem 0.75rem;
-    border: 1px solid transparent;
-    font-size: 0.75rem;
-    font-weight: 500;
-    border-radius: 0.375rem;
-    color: white;
-    background-color: #6366F1;
-    cursor: pointer;
-  }
-  
-  .ghosted-button:hover {
-    background-color: #4F46E5;
-  }
-`;
-document.head.appendChild(styleEl);
+// Content script for Ghost Tamer extension
 
 // Job board detection configuration
 const jobBoardConfigs = {
@@ -123,7 +25,7 @@ const jobBoardConfigs = {
     pathMatch: /\/jobs\//i,
     selectors: {
       title: '.job_title',
-      company: '.hiring_company_name',
+      company: '.hiring_company_text',
       location: '.hiring_location',
     }
   },
@@ -137,6 +39,143 @@ const jobBoardConfigs = {
     }
   }
 };
+
+// Add CSS styles for the overlay
+const styleEl = document.createElement('style');
+styleEl.textContent = `
+  .ghost-tamer-overlay {
+    position: fixed;
+    bottom: 1rem;
+    right: 1rem;
+    width: 16rem;
+    z-index: 9999;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  }
+  
+  .ghost-tamer-card {
+    background-color: white;
+    border-radius: 0.5rem;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    border: 1px solid #e5e7eb;
+    overflow: hidden;
+  }
+  
+  .ghost-tamer-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem 1rem;
+    background-color: #4f46e5;
+    color: white;
+  }
+  
+  .ghost-tamer-title {
+    font-weight: 600;
+    font-size: 0.875rem;
+  }
+  
+  .ghost-tamer-logo {
+    height: 1.25rem;
+    width: auto;
+  }
+  
+  .ghost-tamer-content {
+    padding: 1rem;
+  }
+  
+  .ghost-tamer-flex {
+    display: flex;
+  }
+  
+  .ghost-tamer-flex-between {
+    justify-content: space-between;
+    align-items: center;
+  }
+  
+  .ghost-tamer-heading {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #111827;
+  }
+  
+  .ghost-tamer-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.125rem 0.625rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 500;
+  }
+  
+  .ghost-tamer-badge-green {
+    background-color: #BBF7D0;
+    color: #166534;
+  }
+  
+  .ghost-tamer-badge-yellow {
+    background-color: #FEF3C7;
+    color: #92400E;
+  }
+  
+  .ghost-tamer-badge-red {
+    background-color: #FEE2E2;
+    color: #B91C1C;
+  }
+  
+  .ghost-tamer-text-sm {
+    font-size: 0.75rem;
+  }
+  
+  .ghost-tamer-text-gray {
+    color: #6B7280;
+  }
+  
+  .ghost-tamer-mt-1 {
+    margin-top: 0.25rem;
+  }
+  
+  .ghost-tamer-mt-2 {
+    margin-top: 0.5rem;
+  }
+  
+  .ghost-tamer-mt-3 {
+    margin-top: 0.75rem;
+  }
+  
+  .ghost-tamer-button {
+    width: 100%;
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid transparent;
+    font-size: 0.75rem;
+    font-weight: 500;
+    border-radius: 0.375rem;
+    color: white;
+    background-color: #4f46e5;
+    cursor: pointer;
+  }
+  
+  .ghost-tamer-button:hover {
+    background-color: #4338ca;
+  }
+
+  .ghost-tamer-close {
+    cursor: pointer;
+    color: white;
+    opacity: 0.7;
+    transition: opacity 0.2s;
+  }
+
+  .ghost-tamer-close:hover {
+    opacity: 1;
+  }
+`;
+document.head.appendChild(styleEl);
+
+// Keep track of current job
+let currentJob = null;
 
 // Detect job listings on the page
 function detectJobListing() {
@@ -183,52 +222,29 @@ function detectJobListing() {
   }
 }
 
-// Fetch company ghosting data from API
-async function fetchCompanyData(companyName) {
-  try {
-    // This would be a real API endpoint in production
-    const apiUrl = `https://ghosted-extension.com/api/companies/stats?name=${encodeURIComponent(companyName)}`;
-    
-    // For demo purposes, return mock data
-    return {
-      id: 1,
-      name: companyName,
-      ghostingRate: Math.floor(Math.random() * 100),
-      totalReports: Math.floor(Math.random() * 100),
-      stageBreakdown: {
-        "Initial Application": Math.floor(Math.random() * 100),
-        "After Phone Screen": Math.floor(Math.random() * 100),
-        "After First Interview": Math.floor(Math.random() * 100),
-        "After Multiple Interviews": Math.floor(Math.random() * 100),
-        "After Final Round": Math.floor(Math.random() * 100),
-        "After Verbal Offer": Math.floor(Math.random() * 100)
-      }
-    };
-  } catch (error) {
-    console.error("Error fetching company data:", error);
-    return null;
-  }
-}
-
 // Create and inject the ghosting overlay
 function injectGhostingOverlay(jobDetails, companyData) {
   // Remove existing overlay if present
-  const existingOverlay = document.querySelector('.ghosted-overlay');
+  const existingOverlay = document.querySelector('.ghost-tamer-overlay');
   if (existingOverlay) {
     existingOverlay.remove();
   }
   
   // Determine rating class based on ghosting rate
-  let ratingClass = 'ghosted-badge-green';
+  let ratingClass = 'ghost-tamer-badge-green';
+  let ratingText = 'Low Risk';
+  
   if (companyData.ghostingRate >= 50) {
-    ratingClass = 'ghosted-badge-red';
+    ratingClass = 'ghost-tamer-badge-red';
+    ratingText = 'High Risk';
   } else if (companyData.ghostingRate >= 20) {
-    ratingClass = 'ghosted-badge-yellow';
+    ratingClass = 'ghost-tamer-badge-yellow';
+    ratingText = 'Medium Risk';
   }
   
   // Create overlay element
   const overlay = document.createElement('div');
-  overlay.className = 'ghosted-overlay';
+  overlay.className = 'ghost-tamer-overlay';
   
   // Get top two most common ghosting stages
   const topStages = Object.entries(companyData.stageBreakdown)
@@ -238,37 +254,49 @@ function injectGhostingOverlay(jobDetails, companyData) {
     
   // Generate stage breakdown HTML
   let stageBreakdownHtml = '';
-  topStages.forEach(([stage, percentage], index) => {
-    const color = percentage >= 50 ? 'text-red-700' : (percentage >= 20 ? 'text-amber-700' : 'text-green-700');
-    stageBreakdownHtml += `
-      <div class="ghosted-flex ghosted-flex-between ${index > 0 ? 'ghosted-mt-1' : ''}">
-        <span>${stage}:</span>
-        <span style="font-weight: 500; ${color === 'text-red-700' ? 'color: #B91C1C' : (color === 'text-amber-700' ? 'color: #92400E' : 'color: #166534')}">${percentage}%</span>
-      </div>
-    `;
-  });
+  if (topStages.length > 0) {
+    topStages.forEach(([stage, percentage], index) => {
+      const color = percentage >= 50 ? 'text-red-700' : (percentage >= 20 ? 'text-amber-700' : 'text-green-700');
+      stageBreakdownHtml += `
+        <div class="ghost-tamer-flex ghost-tamer-flex-between ${index > 0 ? 'ghost-tamer-mt-1' : ''}">
+          <span>${stage}:</span>
+          <span style="font-weight: 500; ${color === 'text-red-700' ? 'color: #B91C1C' : (color === 'text-amber-700' ? 'color: #92400E' : 'color: #166534')}">${percentage}%</span>
+        </div>
+      `;
+    });
+  } else {
+    stageBreakdownHtml = '<div class="ghost-tamer-text-sm ghost-tamer-text-gray">No stage data available yet</div>';
+  }
   
   overlay.innerHTML = `
-    <div class="ghosted-card">
-      <div class="ghosted-card-content">
-        <div class="ghosted-flex ghosted-flex-between">
-          <h3 class="ghosted-heading">Ghosted Rating</h3>
-          <span class="ghosted-badge ${ratingClass}">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" style="width: 1rem; height: 1rem; margin-right: 0.25rem;" viewBox="0 0 20 20" fill="currentColor">
-              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-            </svg>
-            ${companyData.ghostingRate}% ghosting
+    <div class="ghost-tamer-card">
+      <div class="ghost-tamer-header">
+        <span class="ghost-tamer-title">enterN | Ghost Tamer</span>
+        <span class="ghost-tamer-close" id="ghost-tamer-close">&times;</span>
+      </div>
+      <div class="ghost-tamer-content">
+        <div class="ghost-tamer-flex ghost-tamer-flex-between">
+          <h3 class="ghost-tamer-heading">Ghosting Rating</h3>
+          <span class="ghost-tamer-badge ${ratingClass}">
+            ${companyData.ghostingRate}% - ${ratingText}
           </span>
         </div>
-        <p class="ghosted-text-sm ghosted-text-gray ghosted-mt-1">Based on ${companyData.totalReports} reports from job seekers</p>
+        <p class="ghost-tamer-text-sm ghost-tamer-text-gray ghost-tamer-mt-1">Based on ${companyData.totalReports} reports from job seekers</p>
         
-        <div class="ghosted-text-sm ghosted-mt-3">
+        <div class="ghost-tamer-text-sm ghost-tamer-mt-3">
+          <strong>Most common ghosting stages:</strong>
           ${stageBreakdownHtml}
         </div>
         
-        <div class="ghosted-mt-3">
-          <button class="ghosted-button" id="ghosted-view-details">
+        <div class="ghost-tamer-mt-3">
+          <button class="ghost-tamer-button" id="ghost-tamer-details">
             View Details
+          </button>
+        </div>
+        
+        <div class="ghost-tamer-mt-2">
+          <button class="ghost-tamer-button" id="ghost-tamer-report" style="background-color: #ef4444;">
+            Report Ghosting
           </button>
         </div>
       </div>
@@ -278,60 +306,80 @@ function injectGhostingOverlay(jobDetails, companyData) {
   // Append to document
   document.body.appendChild(overlay);
   
-  // Add event listener for the View Details button
-  document.getElementById('ghosted-view-details').addEventListener('click', () => {
+  // Add event listeners
+  document.getElementById('ghost-tamer-details').addEventListener('click', () => {
     chrome.runtime.sendMessage({ action: 'openPopup' });
+  });
+  
+  document.getElementById('ghost-tamer-report').addEventListener('click', () => {
+    chrome.runtime.sendMessage({ action: 'openPopup' });
+  });
+  
+  document.getElementById('ghost-tamer-close').addEventListener('click', () => {
+    document.querySelector('.ghost-tamer-overlay').remove();
   });
 }
 
-// Initialize after content loads
-let currentJobDetails = null;
-
-// Run job detection
-async function detectAndInjectOverlay() {
+// Run job detection and send to background script
+async function detectAndSendJobData() {
   // Get settings first
-  chrome.storage.local.get(['settings'], async (result) => {
-    const settings = result.settings || { showOverlays: true, autoDetectJobs: true };
+  chrome.runtime.sendMessage({ action: 'getSettings' }, (response) => {
+    const settings = response?.settings || { showOverlays: true, autoDetectJobs: true };
     
     // Only proceed if settings allow
-    if (!settings.autoDetectJobs || !settings.showOverlays) {
+    if (!settings.autoDetectJobs) {
       return;
     }
     
     // Detect job
-    const jobDetails = detectJobListing();
-    if (!jobDetails) {
+    const jobInfo = detectJobListing();
+    if (!jobInfo) {
       return;
     }
     
-    // Store for popup
-    currentJobDetails = jobDetails;
+    // Store current job
+    currentJob = jobInfo;
     
-    // Fetch company data
-    const companyData = await fetchCompanyData(jobDetails.company);
-    if (companyData) {
-      injectGhostingOverlay(jobDetails, companyData);
-    }
+    // Send to background script
+    chrome.runtime.sendMessage(
+      { action: 'jobDetected', jobInfo }, 
+      (response) => {
+        if (response?.companyData && settings.showOverlays) {
+          injectGhostingOverlay(jobInfo, response.companyData);
+        }
+        
+        if (response?.error) {
+          console.error("Error getting company data:", response.error);
+        }
+      }
+    );
   });
 }
 
 // Run detection on page load with a delay to ensure DOM is fully loaded
-setTimeout(detectAndInjectOverlay, 1500);
+setTimeout(detectAndSendJobData, 1500);
 
 // Listen for messages from popup or background script
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.action === "getJobDetails") {
     // Detect job if we haven't already
-    if (!currentJobDetails) {
-      currentJobDetails = detectJobListing();
+    if (!currentJob) {
+      currentJob = detectJobListing();
     }
     
     // Send back job details
-    sendResponse({ jobDetails: currentJobDetails });
+    sendResponse({ jobDetails: currentJob });
+    return true;
   }
   
-  // Return true to indicate we will respond asynchronously
-  return true;
+  if (message.action === "closeOverlay") {
+    const overlay = document.querySelector('.ghost-tamer-overlay');
+    if (overlay) {
+      overlay.remove();
+    }
+    sendResponse({ success: true });
+    return true;
+  }
 });
 
 // Re-run detection when URL changes (for single page applications)
@@ -339,6 +387,6 @@ let lastUrl = location.href;
 new MutationObserver(() => {
   if (location.href !== lastUrl) {
     lastUrl = location.href;
-    setTimeout(detectAndInjectOverlay, 1500);
+    setTimeout(detectAndSendJobData, 1500);
   }
 }).observe(document, { subtree: true, childList: true });

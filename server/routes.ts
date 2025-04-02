@@ -1,7 +1,9 @@
 import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertCompanySchema, insertGhostingReportSchema, jobDetailsSchema } from "@shared/schema";
+import { db } from "./db";
+import { eq } from "drizzle-orm";
+import { insertCompanySchema, insertGhostingReportSchema, jobDetailsSchema, ghostingReports } from "@shared/schema";
 import { ZodError } from "zod";
 import { fromZodError } from "zod-validation-error";
 
@@ -9,6 +11,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Health check endpoint
   app.get("/api/health", (req: Request, res: Response) => {
     res.json({ status: "ok" });
+  });
+  
+  // Create a company
+  app.post("/api/companies", async (req: Request, res: Response) => {
+    try {
+      const companyData = insertCompanySchema.parse(req.body);
+      const company = await storage.createCompany(companyData);
+      res.status(201).json(company);
+    } catch (error) {
+      if (error instanceof ZodError) {
+        const validationError = fromZodError(error);
+        return res.status(400).json({ error: validationError.message });
+      }
+      
+      console.error("Error creating company:", error);
+      res.status(500).json({ error: "Failed to create company" });
+    }
   });
 
   // Get company stats by name
@@ -58,8 +77,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Create a new ghosting report
   app.post("/api/reports", async (req: Request, res: Response) => {
     try {
-      // Validate the job details and report data
-      const reportData = insertGhostingReportSchema.parse(req.body);
+      // Need to transform the data to match our schema requirements
+      const transformedData = {
+        companyId: 0, // Placeholder, will be replaced
+        jobTitle: req.body.positionTitle || req.body.jobTitle,
+        jobBoard: req.body.jobBoard,
+        jobUrl: req.body.jobPost || req.body.jobUrl,
+        applicationStage: req.body.stage || req.body.applicationStage,
+        incidentDate: req.body.incidentDate ? new Date(req.body.incidentDate) : new Date(), // Use current date if not provided
+        details: req.body.details,
+        anonymous: req.body.anonymous !== false, // Default to true
+        reporterId: req.body.reporterId
+      };
       
       // Check if company exists, create if not
       let company = await storage.getCompanyByName(req.body.companyName);
@@ -71,11 +100,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      // Replace companyName with companyId
-      const report = await storage.createGhostingReport({
-        ...reportData,
+      // Now validate with the schema
+      const reportData = insertGhostingReportSchema.parse({
+        ...transformedData,
         companyId: company.id
       });
+      
+      // Create the report
+      const report = await storage.createGhostingReport(reportData);
       
       res.status(201).json(report);
     } catch (error) {
@@ -121,15 +153,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Reporter ID is required" });
       }
       
-      // In memory storage doesn't have an index so we need to filter
-      const allReports = Array.from(
-        Object.values(storage as any)
-          .find((val: any) => val instanceof Map && val.size > 0 && 
-                Array.from(val.values())[0]?.reporterId !== undefined)
-          ?.values() || []
-      );
+      // Query the database directly for reports by reporter ID
+      const reports = await db
+        .select()
+        .from(ghostingReports)
+        .where(eq(ghostingReports.reporterId, reporterId));
       
-      const reports = allReports.filter(report => report.reporterId === reporterId);
       res.json(reports);
     } catch (error) {
       console.error("Error getting reporter reports:", error);

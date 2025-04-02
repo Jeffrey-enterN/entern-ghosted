@@ -8,6 +8,8 @@ import {
   type CompanyStats,
   APPLICATION_STAGES,
 } from "@shared/schema";
+import { db } from "./db";
+import { eq, sql, desc, like, ilike } from "drizzle-orm";
 
 export interface IStorage {
   // Company methods
@@ -26,62 +28,46 @@ export interface IStorage {
   getCompanyStatsForUrl(jobUrl: string): Promise<CompanyStats | undefined>;
 }
 
-export class MemStorage implements IStorage {
-  private companies: Map<number, Company>;
-  private ghostingReports: Map<number, GhostingReport>;
-  private companyIdCounter: number;
-  private reportIdCounter: number;
-
-  constructor() {
-    this.companies = new Map();
-    this.ghostingReports = new Map();
-    this.companyIdCounter = 1;
-    this.reportIdCounter = 1;
-  }
-
+export class DatabaseStorage implements IStorage {
   // Company methods
   async getCompany(id: number): Promise<Company | undefined> {
-    return this.companies.get(id);
+    const results = await db.select().from(companies).where(eq(companies.id, id));
+    return results.length > 0 ? results[0] : undefined;
   }
 
   async getCompanyByName(name: string): Promise<Company | undefined> {
     const normalizedName = name.toLowerCase().trim();
-    return Array.from(this.companies.values()).find(
-      (company) => company.name.toLowerCase().trim() === normalizedName
-    );
+    const results = await db
+      .select()
+      .from(companies)
+      .where(sql`LOWER(TRIM(${companies.name})) = ${normalizedName}`);
+    return results.length > 0 ? results[0] : undefined;
   }
 
   async createCompany(insertCompany: InsertCompany): Promise<Company> {
-    const id = this.companyIdCounter++;
-    const company: Company = {
-      ...insertCompany,
-      id,
-      createdAt: new Date(),
-    };
-    this.companies.set(id, company);
-    return company;
+    const results = await db
+      .insert(companies)
+      .values(insertCompany)
+      .returning();
+    return results[0];
   }
 
   // Ghosting report methods
   async getGhostingReport(id: number): Promise<GhostingReport | undefined> {
-    return this.ghostingReports.get(id);
+    const results = await db.select().from(ghostingReports).where(eq(ghostingReports.id, id));
+    return results.length > 0 ? results[0] : undefined;
   }
 
   async getCompanyReports(companyId: number): Promise<GhostingReport[]> {
-    return Array.from(this.ghostingReports.values()).filter(
-      (report) => report.companyId === companyId
-    );
+    return db.select().from(ghostingReports).where(eq(ghostingReports.companyId, companyId));
   }
 
   async createGhostingReport(insertReport: InsertGhostingReport): Promise<GhostingReport> {
-    const id = this.reportIdCounter++;
-    const report: GhostingReport = {
-      ...insertReport,
-      id,
-      reportDate: new Date(),
-    };
-    this.ghostingReports.set(id, report);
-    return report;
+    const results = await db
+      .insert(ghostingReports)
+      .values(insertReport)
+      .returning();
+    return results[0];
   }
 
   // Stats methods
@@ -109,12 +95,12 @@ export class MemStorage implements IStorage {
 
     // Get recent reports (maximum 5, sorted by date descending)
     const recentReports = reports
-      .sort((a, b) => b.reportDate.getTime() - a.reportDate.getTime())
+      .sort((a, b) => new Date(b.reportDate).getTime() - new Date(a.reportDate).getTime())
       .slice(0, 5)
       .map(report => ({
         id: report.id,
         applicationStage: report.applicationStage,
-        reportDate: report.reportDate.toISOString(),
+        reportDate: new Date(report.reportDate).toISOString(),
         details: report.details,
       }));
 
@@ -138,9 +124,12 @@ export class MemStorage implements IStorage {
 
   async getCompanyStatsForUrl(jobUrl: string): Promise<CompanyStats | undefined> {
     // Find report that matches this URL
-    const report = Array.from(this.ghostingReports.values()).find(
-      r => r.jobUrl === jobUrl
-    );
+    const results = await db
+      .select()
+      .from(ghostingReports)
+      .where(eq(ghostingReports.jobUrl, jobUrl));
+    
+    const report = results.length > 0 ? results[0] : undefined;
     
     if (!report) {
       return undefined;
@@ -150,4 +139,4 @@ export class MemStorage implements IStorage {
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new DatabaseStorage();

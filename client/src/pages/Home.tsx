@@ -5,6 +5,7 @@ import CompanyDetails from "@/components/CompanyDetails";
 import GhostingForm from "@/components/GhostingForm";
 import NoJobDetected from "@/components/NoJobDetected";
 import SuccessMessage from "@/components/SuccessMessage";
+import LoadingPage from "@/components/LoadingPage";
 import { getJobDetails } from "@/lib/extensionApi";
 import { JobDetails as JobDetailsType } from "@shared/schema";
 
@@ -16,12 +17,12 @@ export default function Home() {
   
   // Query for company stats if we have job details
   const { data: companyStats, isLoading } = useQuery({
-    queryKey: jobDetails ? ['/api/companies/stats', jobDetails.company] : null,
+    queryKey: ['/api/companies/stats', jobDetails?.company || ''],
     queryFn: () => fetch(`/api/companies/stats?name=${encodeURIComponent(jobDetails!.company)}`).then(res => {
       if (!res.ok && res.status !== 404) throw new Error("Failed to get company stats");
       return res.json();
     }),
-    enabled: !!jobDetails,
+    enabled: !!jobDetails, // Only run query if we have job details
   });
 
   useEffect(() => {
@@ -64,6 +65,11 @@ export default function Home() {
     }, 3000);
   };
 
+  // Loading state while fetching company data
+  if (viewState === "job" && jobDetails && isLoading) {
+    return <LoadingPage message="Checking ghosting data..." />;
+  }
+  
   return (
     <div>
       {viewState === "empty" && <NoJobDetected />}

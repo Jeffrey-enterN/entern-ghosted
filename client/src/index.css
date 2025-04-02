@@ -2,6 +2,92 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Custom Mascot Animations */
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes wag {
+  0%, 100% {
+    transform: rotate(0deg);
+  }
+  25% {
+    transform: rotate(10deg);
+  }
+  75% {
+    transform: rotate(-10deg);
+  }
+}
+
+@keyframes bounce-slow {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-5px);
+  }
+}
+
+@keyframes twinkle {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+@keyframes blink {
+  0%, 100% {
+    transform: scaleY(1);
+  }
+  15% {
+    transform: scaleY(0.1);
+  }
+  17% {
+    transform: scaleY(1);
+  }
+}
+
+@keyframes smile {
+  0%, 100% {
+    transform: scaleX(1);
+  }
+  50% {
+    transform: scaleX(1.1);
+  }
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+.animate-wag {
+  animation: wag 1s ease-in-out infinite;
+  transform-origin: 0 50%;
+}
+
+.animate-bounce-slow {
+  animation: bounce-slow 2s ease-in-out infinite;
+}
+
+.animate-twinkle {
+  animation: twinkle 1.5s ease-in-out infinite;
+}
+
+.animate-blink {
+  animation: blink 4s ease-in-out infinite;
+}
+
+.animate-smile {
+  animation: smile 2s ease-in-out infinite;
+}
+
 @layer base {
   * {
     @apply border-border;
