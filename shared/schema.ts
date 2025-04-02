@@ -1,8 +1,8 @@
-import { pgTable, text, serial, integer, boolean, timestamp, varchar } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
-// Users table for authentication
+// Users table
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   username: text("username").notNull().unique(),
@@ -14,62 +14,98 @@ export const insertUserSchema = createInsertSchema(users).pick({
   password: true,
 });
 
-// Companies table to store employer information
-export const companies = pgTable("companies", {
+export type InsertUser = z.infer<typeof insertUserSchema>;
+export type User = typeof users.$inferSelect;
+
+// Employers table
+export const employers = pgTable("employers", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
-  industry: text("industry"),
   website: text("website"),
+  domain: text("domain"),
+  createdAt: timestamp("created_at").defaultNow().notNull()
 });
 
-export const insertCompanySchema = createInsertSchema(companies).pick({
+export const insertEmployerSchema = createInsertSchema(employers).pick({
   name: true,
-  industry: true,
   website: true,
+  domain: true
 });
 
-// GhostingReports table to store user submitted reports
+export type InsertEmployer = z.infer<typeof insertEmployerSchema>;
+export type Employer = typeof employers.$inferSelect;
+
+// Job listings table
+export const jobListings = pgTable("job_listings", {
+  id: serial("id").primaryKey(),
+  title: text("title").notNull(),
+  employerId: integer("employer_id").notNull(),
+  platform: text("platform").notNull(), // LinkedIn, Indeed, etc.
+  jobUrl: text("job_url").notNull(),
+  platformJobId: text("platform_job_id"),
+  createdAt: timestamp("created_at").defaultNow().notNull()
+});
+
+export const insertJobListingSchema = createInsertSchema(jobListings).pick({
+  title: true,
+  employerId: true,
+  platform: true,
+  jobUrl: true,
+  platformJobId: true
+});
+
+export type InsertJobListing = z.infer<typeof insertJobListingSchema>;
+export type JobListing = typeof jobListings.$inferSelect;
+
+// Ghosting reports table
+export enum GhostingStage {
+  APPLICATION = "application",
+  SCREENING = "screening",
+  INTERVIEW = "interview",
+  ASSESSMENT = "assessment",
+  OFFER = "offer"
+}
+
 export const ghostingReports = pgTable("ghosting_reports", {
   id: serial("id").primaryKey(),
-  companyName: text("company_name").notNull(),
-  jobTitle: text("job_title").notNull(),
-  applicationDate: timestamp("application_date").notNull(),
-  ghostingStage: text("ghosting_stage").notNull(),
-  timeElapsed: text("time_elapsed").notNull(),
+  employerId: integer("employer_id").notNull(),
+  jobListingId: integer("job_listing_id"),
+  submitterId: text("submitter_id").notNull(), // Anonymous ID for the submitter
+  stage: text("stage").notNull(), // When the ghosting occurred (application, interview, etc)
   details: text("details"),
-  anonymous: boolean("anonymous").default(false),
-  reportedAt: timestamp("reported_at").defaultNow().notNull(),
-  userId: integer("user_id"),
-  jobBoard: text("job_board"),
-  location: text("location"),
+  shareContact: boolean("share_contact").default(false),
+  date: timestamp("date").notNull(), // When the ghosting occurred
+  createdAt: timestamp("created_at").defaultNow().notNull()
 });
 
-export const insertGhostingReportSchema = createInsertSchema(ghostingReports).omit({
-  id: true,
-  reportedAt: true,
+export const insertGhostingReportSchema = createInsertSchema(ghostingReports).pick({
+  employerId: true,
+  jobListingId: true,
+  submitterId: true,
+  stage: true,
+  details: true,
+  shareContact: true,
+  date: true
 });
 
-// Job Boards table to track supported job boards
-export const jobBoards = pgTable("job_boards", {
-  id: serial("id").primaryKey(),
-  name: varchar("name", { length: 50 }).notNull(),
-  domainPattern: varchar("domain_pattern", { length: 255 }).notNull(),
-  enabled: boolean("enabled").default(true),
-});
-
-export const insertJobBoardSchema = createInsertSchema(jobBoards).omit({
-  id: true,
-});
-
-// Types for the models
-export type User = typeof users.$inferSelect;
-export type InsertUser = z.infer<typeof insertUserSchema>;
-
-export type Company = typeof companies.$inferSelect;
-export type InsertCompany = z.infer<typeof insertCompanySchema>;
-
-export type GhostingReport = typeof ghostingReports.$inferSelect;
 export type InsertGhostingReport = z.infer<typeof insertGhostingReportSchema>;
+export type GhostingReport = typeof ghostingReports.$inferSelect;
 
-export type JobBoard = typeof jobBoards.$inferSelect;
-export type InsertJobBoard = z.infer<typeof insertJobBoardSchema>;
+// Extended types with additional data
+export type GhostingReportWithDetails = GhostingReport & {
+  employer: Employer;
+  jobListing?: JobListing;
+};
+
+export type EmployerWithStats = Employer & {
+  reportCount: number;
+  averageRating: number;
+};
+
+export type JobListingWithStats = JobListing & {
+  employer: Employer;
+  reportCount: number;
+  applicantCount: number;
+  ghostingScore: number;
+  rating: string;
+};

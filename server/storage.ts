@@ -1,219 +1,301 @@
-import { 
-  users, type User, type InsertUser, 
-  companies, type Company, type InsertCompany,
-  ghostingReports, type GhostingReport, type InsertGhostingReport,
-  jobBoards, type JobBoard, type InsertJobBoard 
+import {
+  type User,
+  type Employer,
+  type JobListing,
+  type GhostingReport,
+  type InsertUser,
+  type InsertEmployer,
+  type InsertJobListing,
+  type InsertGhostingReport,
+  type EmployerWithStats,
+  type JobListingWithStats,
+  type GhostingReportWithDetails
 } from "@shared/schema";
 
-// Interface for storage operations
 export interface IStorage {
   // User operations
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   
-  // Company operations
-  getCompany(id: number): Promise<Company | undefined>;
-  getCompanyByName(name: string): Promise<Company | undefined>;
-  createCompany(company: InsertCompany): Promise<Company>;
-  listCompanies(): Promise<Company[]>;
+  // Employer operations
+  getEmployer(id: number): Promise<Employer | undefined>;
+  getEmployerByName(name: string): Promise<Employer | undefined>;
+  getEmployerByDomain(domain: string): Promise<Employer | undefined>;
+  createEmployer(employer: InsertEmployer): Promise<Employer>;
+  getTopEmployers(limit: number): Promise<EmployerWithStats[]>;
+  searchEmployers(query: string): Promise<Employer[]>;
+  
+  // Job listing operations
+  getJobListing(id: number): Promise<JobListing | undefined>;
+  getJobListingByUrl(url: string): Promise<JobListing | undefined>;
+  getJobListingByPlatformId(platform: string, platformJobId: string): Promise<JobListing | undefined>;
+  createJobListing(jobListing: InsertJobListing): Promise<JobListing>;
+  getRecentJobListings(limit: number): Promise<JobListingWithStats[]>;
   
   // Ghosting report operations
-  createGhostingReport(report: InsertGhostingReport): Promise<GhostingReport>;
   getGhostingReport(id: number): Promise<GhostingReport | undefined>;
-  getGhostingReportsByCompany(companyName: string): Promise<GhostingReport[]>;
-  listGhostingReports(limit?: number): Promise<GhostingReport[]>;
-  
-  // Job board operations
-  listJobBoards(): Promise<JobBoard[]>;
-  getJobBoard(id: number): Promise<JobBoard | undefined>;
-  createJobBoard(jobBoard: InsertJobBoard): Promise<JobBoard>;
-  
-  // Statistics operations
-  getCompanyGhostingRate(companyName: string): Promise<number>;
-  getTopGhostingCompanies(limit?: number): Promise<{company: string, ghostingRate: number, reportCount: number}[]>;
-  getGhostingByIndustry(): Promise<{industry: string, ghostingRate: number}[]>;
-  getRecentReports(limit?: number): Promise<GhostingReport[]>;
+  createGhostingReport(report: InsertGhostingReport): Promise<GhostingReport>;
+  getGhostingReportsByEmployer(employerId: number): Promise<GhostingReport[]>;
+  getGhostingReportsByJobListing(jobListingId: number): Promise<GhostingReport[]>;
+  getGhostingReportsBySubmitter(submitterId: string): Promise<GhostingReportWithDetails[]>;
+  getJobListingStats(jobListingId: number): Promise<{reportCount: number, applicantCount: number, ghostingScore: number}>;
+  getEmployerStats(employerId: number): Promise<{reportCount: number, averageRating: number}>;
 }
 
 export class MemStorage implements IStorage {
   private users: Map<number, User>;
-  private companies: Map<number, Company>;
+  private employers: Map<number, Employer>;
+  private jobListings: Map<number, JobListing>;
   private ghostingReports: Map<number, GhostingReport>;
-  private jobBoards: Map<number, JobBoard>;
   
-  private userIdCounter: number;
-  private companyIdCounter: number;
-  private reportIdCounter: number;
-  private jobBoardIdCounter: number;
-
+  private userId: number;
+  private employerId: number;
+  private jobListingId: number;
+  private ghostingReportId: number;
+  
   constructor() {
     this.users = new Map();
-    this.companies = new Map();
+    this.employers = new Map();
+    this.jobListings = new Map();
     this.ghostingReports = new Map();
-    this.jobBoards = new Map();
     
-    this.userIdCounter = 1;
-    this.companyIdCounter = 1;
-    this.reportIdCounter = 1;
-    this.jobBoardIdCounter = 1;
+    this.userId = 1;
+    this.employerId = 1;
+    this.jobListingId = 1;
+    this.ghostingReportId = 1;
     
-    // Initialize with default job boards
-    this.seedJobBoards();
+    // Seed some initial data
+    this.seedData();
   }
-
-  private seedJobBoards() {
-    const defaultJobBoards: InsertJobBoard[] = [
-      { name: 'LinkedIn', domainPattern: 'linkedin.com', enabled: true },
-      { name: 'Indeed', domainPattern: 'indeed.com', enabled: true },
-      { name: 'ZipRecruiter', domainPattern: 'ziprecruiter.com', enabled: true },
-      { name: 'Monster', domainPattern: 'monster.com', enabled: true },
-      { name: 'Glassdoor', domainPattern: 'glassdoor.com', enabled: true }
-    ];
-    
-    defaultJobBoards.forEach(board => {
-      this.createJobBoard(board);
-    });
-  }
-
+  
   // User operations
   async getUser(id: number): Promise<User | undefined> {
     return this.users.get(id);
   }
-
+  
   async getUserByUsername(username: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.username === username,
+    return Array.from(this.users.values()).find(user => user.username === username);
+  }
+  
+  async createUser(user: InsertUser): Promise<User> {
+    const id = this.userId++;
+    const newUser: User = { ...user, id };
+    this.users.set(id, newUser);
+    return newUser;
+  }
+  
+  // Employer operations
+  async getEmployer(id: number): Promise<Employer | undefined> {
+    return this.employers.get(id);
+  }
+  
+  async getEmployerByName(name: string): Promise<Employer | undefined> {
+    return Array.from(this.employers.values()).find(
+      employer => employer.name.toLowerCase() === name.toLowerCase()
     );
   }
-
-  async createUser(insertUser: InsertUser): Promise<User> {
-    const id = this.userIdCounter++;
-    const user: User = { ...insertUser, id };
-    this.users.set(id, user);
-    return user;
-  }
-
-  // Company operations
-  async getCompany(id: number): Promise<Company | undefined> {
-    return this.companies.get(id);
-  }
-
-  async getCompanyByName(name: string): Promise<Company | undefined> {
-    return Array.from(this.companies.values()).find(
-      (company) => company.name.toLowerCase() === name.toLowerCase(),
+  
+  async getEmployerByDomain(domain: string): Promise<Employer | undefined> {
+    return Array.from(this.employers.values()).find(
+      employer => employer.domain === domain
     );
   }
-
-  async createCompany(company: InsertCompany): Promise<Company> {
-    const id = this.companyIdCounter++;
-    const newCompany: Company = { ...company, id };
-    this.companies.set(id, newCompany);
-    return newCompany;
+  
+  async createEmployer(employer: InsertEmployer): Promise<Employer> {
+    const id = this.employerId++;
+    const newEmployer: Employer = { ...employer, id, createdAt: new Date() };
+    this.employers.set(id, newEmployer);
+    return newEmployer;
   }
-
-  async listCompanies(): Promise<Company[]> {
-    return Array.from(this.companies.values());
+  
+  async getTopEmployers(limit: number): Promise<EmployerWithStats[]> {
+    const employers = Array.from(this.employers.values());
+    const employersWithStats = await Promise.all(
+      employers.map(async (employer) => {
+        const stats = await this.getEmployerStats(employer.id);
+        return {
+          ...employer,
+          ...stats
+        };
+      })
+    );
+    
+    return employersWithStats
+      .filter(e => e.reportCount > 0)
+      .sort((a, b) => b.averageRating - a.averageRating)
+      .slice(0, limit);
   }
-
+  
+  async searchEmployers(query: string): Promise<Employer[]> {
+    if (!query) return [];
+    const lowerQuery = query.toLowerCase();
+    return Array.from(this.employers.values()).filter(
+      employer => employer.name.toLowerCase().includes(lowerQuery)
+    );
+  }
+  
+  // Job listing operations
+  async getJobListing(id: number): Promise<JobListing | undefined> {
+    return this.jobListings.get(id);
+  }
+  
+  async getJobListingByUrl(url: string): Promise<JobListing | undefined> {
+    return Array.from(this.jobListings.values()).find(
+      jobListing => jobListing.jobUrl === url
+    );
+  }
+  
+  async getJobListingByPlatformId(platform: string, platformJobId: string): Promise<JobListing | undefined> {
+    return Array.from(this.jobListings.values()).find(
+      jobListing => jobListing.platform === platform && jobListing.platformJobId === platformJobId
+    );
+  }
+  
+  async createJobListing(jobListing: InsertJobListing): Promise<JobListing> {
+    const id = this.jobListingId++;
+    const newJobListing: JobListing = { ...jobListing, id, createdAt: new Date() };
+    this.jobListings.set(id, newJobListing);
+    return newJobListing;
+  }
+  
+  async getRecentJobListings(limit: number): Promise<JobListingWithStats[]> {
+    const jobListings = Array.from(this.jobListings.values());
+    const jobListingsWithStats = await Promise.all(
+      jobListings.map(async (job) => {
+        const employer = await this.getEmployer(job.employerId);
+        const stats = await this.getJobListingStats(job.id);
+        let rating = "Unknown";
+        
+        if (stats.ghostingScore >= 0.8) rating = "Excellent";
+        else if (stats.ghostingScore >= 0.6) rating = "Good";
+        else if (stats.ghostingScore >= 0.4) rating = "Moderate";
+        else if (stats.ghostingScore >= 0.2) rating = "Poor";
+        else rating = "Very Poor";
+        
+        return {
+          ...job,
+          employer: employer!,
+          ...stats,
+          rating
+        };
+      })
+    );
+    
+    return jobListingsWithStats
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+      .slice(0, limit);
+  }
+  
   // Ghosting report operations
-  async createGhostingReport(report: InsertGhostingReport): Promise<GhostingReport> {
-    const id = this.reportIdCounter++;
-    const newReport: GhostingReport = { 
-      ...report, 
-      id, 
-      reportedAt: new Date() 
-    };
-    this.ghostingReports.set(id, newReport);
-    
-    // Ensure company exists
-    const existingCompany = await this.getCompanyByName(report.companyName);
-    if (!existingCompany) {
-      await this.createCompany({ 
-        name: report.companyName, 
-        industry: undefined, 
-        website: undefined 
-      });
-    }
-    
-    return newReport;
-  }
-
   async getGhostingReport(id: number): Promise<GhostingReport | undefined> {
     return this.ghostingReports.get(id);
   }
-
-  async getGhostingReportsByCompany(companyName: string): Promise<GhostingReport[]> {
-    return Array.from(this.ghostingReports.values()).filter(
-      (report) => report.companyName.toLowerCase() === companyName.toLowerCase(),
-    );
+  
+  async createGhostingReport(report: InsertGhostingReport): Promise<GhostingReport> {
+    const id = this.ghostingReportId++;
+    const newReport: GhostingReport = { ...report, id, createdAt: new Date() };
+    this.ghostingReports.set(id, newReport);
+    return newReport;
   }
-
-  async listGhostingReports(limit: number = 100): Promise<GhostingReport[]> {
+  
+  async getGhostingReportsByEmployer(employerId: number): Promise<GhostingReport[]> {
     return Array.from(this.ghostingReports.values())
-      .sort((a, b) => b.reportedAt.getTime() - a.reportedAt.getTime())
-      .slice(0, limit);
+      .filter(report => report.employerId === employerId)
+      .sort((a, b) => b.date.getTime() - a.date.getTime());
   }
-
-  // Job board operations
-  async listJobBoards(): Promise<JobBoard[]> {
-    return Array.from(this.jobBoards.values());
+  
+  async getGhostingReportsByJobListing(jobListingId: number): Promise<GhostingReport[]> {
+    return Array.from(this.ghostingReports.values())
+      .filter(report => report.jobListingId === jobListingId)
+      .sort((a, b) => b.date.getTime() - a.date.getTime());
   }
-
-  async getJobBoard(id: number): Promise<JobBoard | undefined> {
-    return this.jobBoards.get(id);
-  }
-
-  async createJobBoard(jobBoard: InsertJobBoard): Promise<JobBoard> {
-    const id = this.jobBoardIdCounter++;
-    const newJobBoard: JobBoard = { ...jobBoard, id };
-    this.jobBoards.set(id, newJobBoard);
-    return newJobBoard;
-  }
-
-  // Statistics operations
-  async getCompanyGhostingRate(companyName: string): Promise<number> {
-    const reports = await this.getGhostingReportsByCompany(companyName);
-    if (reports.length === 0) return 0;
-    
-    // For simplicity, the ghosting rate is the number of reports 
-    // divided by an arbitrary base value (e.g., 10) to simulate percentage
-    return Math.min(Math.round((reports.length / 10) * 100), 100);
-  }
-
-  async getTopGhostingCompanies(limit: number = 5): Promise<{company: string, ghostingRate: number, reportCount: number}[]> {
-    const allReports = Array.from(this.ghostingReports.values());
-    
-    // Count reports by company
-    const companyCounts = new Map<string, number>();
-    allReports.forEach(report => {
-      const current = companyCounts.get(report.companyName) || 0;
-      companyCounts.set(report.companyName, current + 1);
-    });
-    
-    // Convert to array and sort by count
-    const result = Array.from(companyCounts.entries())
-      .map(([company, count]) => {
-        const ghostingRate = Math.min(Math.round((count / 10) * 100), 100);
-        return { company, ghostingRate, reportCount: count };
+  
+  async getGhostingReportsBySubmitter(submitterId: string): Promise<GhostingReportWithDetails[]> {
+    const reports = Array.from(this.ghostingReports.values())
+      .filter(report => report.submitterId === submitterId)
+      .sort((a, b) => b.date.getTime() - a.date.getTime());
+      
+    const reportsWithDetails = await Promise.all(
+      reports.map(async (report) => {
+        const employer = await this.getEmployer(report.employerId);
+        let jobListing = undefined;
+        
+        if (report.jobListingId) {
+          jobListing = await this.getJobListing(report.jobListingId);
+        }
+        
+        return {
+          ...report,
+          employer: employer!,
+          jobListing
+        };
       })
-      .sort((a, b) => b.reportCount - a.reportCount);
+    );
     
-    return result.slice(0, limit);
+    return reportsWithDetails;
   }
-
-  async getGhostingByIndustry(): Promise<{industry: string, ghostingRate: number}[]> {
-    // For simplicity, we'll return mock industry data
-    return [
-      { industry: 'Technology', ghostingRate: 78 },
-      { industry: 'Finance', ghostingRate: 64 },
-      { industry: 'Healthcare', ghostingRate: 42 },
-      { industry: 'Education', ghostingRate: 27 }
+  
+  async getJobListingStats(jobListingId: number): Promise<{reportCount: number, applicantCount: number, ghostingScore: number}> {
+    const reports = await this.getGhostingReportsByJobListing(jobListingId);
+    // For demo purposes, generate a number of applicants higher than reports
+    const applicantCount = Math.max(Math.floor(reports.length * (1 + Math.random() * 2)), reports.length);
+    // The higher the number, the better (fewer ghostings per applicant)
+    const ghostingScore = applicantCount > 0 ? 1 - (reports.length / applicantCount) : 0;
+    
+    return {
+      reportCount: reports.length,
+      applicantCount,
+      ghostingScore
+    };
+  }
+  
+  async getEmployerStats(employerId: number): Promise<{reportCount: number, averageRating: number}> {
+    const reports = await this.getGhostingReportsByEmployer(employerId);
+    
+    // For employers, we calculate a rating between 0-5
+    // The fewer reports relative to the size of the company, the better the rating
+    let score = 0;
+    if (reports.length > 0) {
+      // This is a simplified calculation - in a real app, this would be more sophisticated
+      const ghostingStageWeights = {
+        application: 0.2,
+        screening: 0.4,
+        interview: 0.6,
+        assessment: 0.8,
+        offer: 1.0
+      };
+      
+      const stageScores = reports.map(report => {
+        const weight = ghostingStageWeights[report.stage as keyof typeof ghostingStageWeights] || 0.5;
+        return 5 * (1 - weight); // Higher stage = worse score
+      });
+      
+      score = stageScores.reduce((sum, score) => sum + score, 0) / reports.length;
+    } else {
+      score = 5; // Perfect score if no reports
+    }
+    
+    return {
+      reportCount: reports.length,
+      averageRating: score
+    };
+  }
+  
+  private seedData() {
+    // Add some initial seed data for demonstration
+    const demoEmployers: InsertEmployer[] = [
+      { name: "TechCorp Solutions", website: "https://techcorp.example.com", domain: "techcorp.example.com" },
+      { name: "CreativeWorks Inc.", website: "https://creativeworks.example.com", domain: "creativeworks.example.com" },
+      { name: "BrandBoost Media", website: "https://brandboost.example.com", domain: "brandboost.example.com" },
+      { name: "InnovateX Solutions", website: "https://innovatex.example.com", domain: "innovatex.example.com" },
+      { name: "Acme Corporation", website: "https://acme.example.com", domain: "acme.example.com" },
+      { name: "GlobalTech Holdings", website: "https://globaltech.example.com", domain: "globaltech.example.com" }
     ];
-  }
-
-  async getRecentReports(limit: number = 5): Promise<GhostingReport[]> {
-    return this.listGhostingReports(limit);
+    
+    demoEmployers.forEach(employer => {
+      this.createEmployer(employer);
+    });
   }
 }
 

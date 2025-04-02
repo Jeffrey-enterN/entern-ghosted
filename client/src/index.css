@@ -9,40 +9,5 @@
 
   body {
     @apply font-sans antialiased bg-background text-foreground;
-    width: 360px;
-    min-height: 600px;
-    max-height: 600px;
-    overflow: hidden;
   }
-}
-
-/* Custom Ghost Rating badges */
-.ghost-rating {
-  @apply inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold;
-}
-
-.ghost-low {
-  @apply bg-green-50 text-green-600;
-}
-
-.ghost-medium {
-  @apply bg-yellow-50 text-yellow-600;
-}
-
-.ghost-high {
-  @apply bg-red-50 text-red-600;
-}
-
-/* Tab indicator animation */
-.tab-indicator {
-  @apply transition-transform duration-300 ease-in-out;
-}
-
-/* Toggle switch */
-.toggle-checkbox:checked {
-  @apply right-0 border-primary;
-}
-
-.toggle-checkbox:checked + .toggle-label {
-  @apply bg-primary;
 }

@@ -1,0 +1,41 @@
+{
+  "manifest_version": 3,
+  "name": "GhostGuard",
+  "version": "1.0.0",
+  "description": "Track employer ghosting incidents and view ratings on job boards",
+  "icons": {
+    "16": "https://cdn.jsdelivr.net/npm/remixicon@3.5.0/icons/System/ghost-line.svg",
+    "48": "https://cdn.jsdelivr.net/npm/remixicon@3.5.0/icons/System/ghost-line.svg",
+    "128": "https://cdn.jsdelivr.net/npm/remixicon@3.5.0/icons/System/ghost-line.svg"
+  },
+  "action": {
+    "default_popup": "index.html",
+    "default_title": "GhostGuard"
+  },
+  "permissions": [
+    "storage",
+    "activeTab",
+    "tabs"
+  ],
+  "host_permissions": [
+    "*://*.linkedin.com/*",
+    "*://*.indeed.com/*",
+    "*://*.ziprecruiter.com/*",
+    "*://*.monster.com/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "*://*.linkedin.com/jobs/*",
+        "*://*.indeed.com/jobs*",
+        "*://*.indeed.com/job/*",
+        "*://*.ziprecruiter.com/jobs/*",
+        "*://*.monster.com/jobs/*"
+      ],
+      "js": ["content-script.js"]
+    }
+  ]
+}
