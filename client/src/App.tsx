@@ -65,10 +65,13 @@ function App() {
         {/* Header */}
         <header className="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between sticky top-0 z-10">
           <div className="flex items-center">
-            <svg className="h-8 w-8 text-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+            <svg className="h-8 w-8 text-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <path d="M12 4c-4.4 0-8 3.6-8 8v6c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2v-6c0-4.4-3.6-8-8-8z" fill="#F8F3E9" stroke="#3D302A" strokeWidth="1.5"/>
+              <path d="M9 9.5c.5-.8 2-.8 2.5 0M15 9.5c-.5-.8-2-.8-2.5 0" fill="#3D302A"/>
+              <path d="M10 12.5a2 2 0 104 0" stroke="#3D302A" strokeWidth="1.5" strokeLinecap="round"/>
+              <path d="M4 18c0 1 .5 1.5 1.5 1.5s1.5-.5 1.5-1.5-.5-1.5-1.5-1.5S4 17 4 18zM7 18c0 1 .5 1.5 1.5 1.5s1.5-.5 1.5-1.5-.5-1.5-1.5-1.5S7 17 7 18z" fill="#F8F3E9" stroke="#3D302A" strokeWidth="1.5"/>
             </svg>
-            <h1 className="ml-2 text-xl font-bold text-gray-800">Ghosted</h1>
+            <h1 className="ml-2 text-lg font-bold text-gray-800">Powered by <span className="text-indigo-600">enterN</span></h1>
           </div>
           <div className="flex items-center space-x-2">
             <button 
