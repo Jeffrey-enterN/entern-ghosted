@@ -16,12 +16,26 @@ export default function Home() {
   const [viewState, setViewState] = useState<ViewState>("empty");
   
   // Query for company stats if we have job details
-  const { data: companyStats, isLoading } = useQuery({
+  const { data: companyStats, isLoading, error } = useQuery({
     queryKey: ['/api/companies/stats', jobDetails?.company || ''],
-    queryFn: () => fetch(`/api/companies/stats?name=${encodeURIComponent(jobDetails!.company)}`).then(res => {
-      if (!res.ok && res.status !== 404) throw new Error("Failed to get company stats");
+    queryFn: async () => {
+      const res = await fetch(`/api/companies/stats?name=${encodeURIComponent(jobDetails!.company)}`);
+      if (!res.ok) {
+        // If it's a 404, return a default company stats object
+        if (res.status === 404) {
+          return {
+            companyId: 0,
+            companyName: jobDetails!.company,
+            ghostingRate: 0,
+            totalReports: 0,
+            stageBreakdown: {},
+            recentReports: []
+          };
+        }
+        throw new Error("Failed to get company stats");
+      }
       return res.json();
-    }),
+    },
     enabled: !!jobDetails, // Only run query if we have job details
   });
 
@@ -50,7 +64,10 @@ export default function Home() {
   };
 
   const handleViewDetails = () => {
-    setViewState("company");
+    // Only navigate to company details if we have company stats
+    if (companyStats) {
+      setViewState("company");
+    }
   };
 
   const handleBackToJob = () => {
